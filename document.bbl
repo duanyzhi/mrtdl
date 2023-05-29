@@ -1,0 +1,30 @@
+\begin{thebibliography}{1}
+
+\bibitem{Hartley1994SelfCalibrationFM}
+Richard~I. Hartley.
+\newblock Self-calibration from multiple views with a rotating camera.
+\newblock In {\em ECCV}, 1994.
+
+\bibitem{malis2007deeper}
+Ezio Malis and Manuel Vargas.
+\newblock {\em Deeper understanding of the homography decomposition for
+  vision-based control}.
+\newblock PhD thesis, INRIA, 2007.
+
+\bibitem{strang1993introduction}
+Gilbert Strang, Gilbert Strang, Gilbert Strang, and Gilbert Strang.
+\newblock {\em Introduction to linear algebra}, volume~3.
+\newblock Wellesley-Cambridge Press Wellesley, MA, 1993.
+
+\bibitem{computevision}
+Richard Szeliski.
+\newblock {\em Computer vision: algorithms and applications}.
+\newblock Springer Science \& Business Media, 2010.
+
+\bibitem{zhang2000flexible}
+Zhengyou Zhang.
+\newblock A flexible new technique for camera calibration.
+\newblock {\em IEEE Transactions on pattern analysis and machine intelligence},
+  22(11):1330--1334, 2000.
+
+\end{thebibliography}

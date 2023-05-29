@@ -1,0 +1,10 @@
+mktexpk --mfmode / --bdpi 600 --mag 1+120/600 --dpi 720 cyberb5f
+mktexpk --mfmode / --bdpi 600 --mag 1+120/600 --dpi 720 cyberb5f
+mktextfm STKaiti/OT
+mktextfm STKaiti/B/OT
+mktextfm STHeiti/OT
+mktextfm STHeiti/I/OT
+mktextfm STHeiti/OT
+mktextfm STHeiti/OT
+mktexpk --mfmode / --bdpi 600 --mag 1+120/600 --dpi 720 cyberb5f
+mktexpk --mfmode / --bdpi 600 --mag 1+120/600 --dpi 720 gbk45
