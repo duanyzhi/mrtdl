@@ -658,6 +658,30 @@ void fun();
 \subsection{std::forward}
 \subsection{std::enable\_if}
 \subsection{std::find\_if}
+\subsection{std::map和std::unordered\_map}
+std::unordered\_map无序数组主要是通过hashmap来实现的，通过数组和链表hashmap定义可表示为:
+\begin{lstlisting}
+template <typename _Key, typename _Value>
+struct HashNode {
+	_Key key_;
+	_Value value_;
+	HashNode* next_;
+};
+
+template <typename _Key, typename _Value, class HashFun, class EqualFun>
+struct HashMap {
+ private:
+  HashNode<_K, _Value>** hash_table;
+  unsigned int size_;   // total hash map(hash_table) size
+};
+\end{lstlisting}
+HashMap模板函数包括: \_Key一般是一个hashcode用来表示唯一的id信息，也可以是整数,string等。\_Value则表示需要存储的数据结构。hashmap的数据都存储在一个hash\_table中，hash\_table可以看出一个array或者vector。具有一定的大小(size\_)，每个元素存储了一个链表的首节点地址指针。则对于任意一个map中的元素则可以通过整数索引来获取。那么如何获取这个整数索引呢?这就需要输入一个HashFun将\_Key转换成一个整数id，比如用下面函数:
+\begin{lstlisting}
+static int indexFor(int key, int max_size) {  
+  return key & (max_size - 1);
+}
+\end{lstlisting}
+这里如果key是一个int值，max\_size表示hash\_table的长度size\_,则通过求余数将一个很大的整形数或者hash值转换成到0到size\_之间的一个整数id。然后用id来从hash\_table中索引具体的节点HashNode。HashNode主要包含三个成员变量，key是hashcode值，表示当前node节点的唯一id值。value表示存储的整数数据结构体，next指针指向下一个HashNode节点。如果hash值映射的id都是唯一的，那么hash\_table的value就是每一个node节点的地址指针。但是这里就会出现可能会出现多个不同的hash值映射成了一个索引id（hash冲突）,因为没有办法将size\_设置的很大来容纳所有的hash值，所以如果对于同一个id, 通过next指针指向下一个HashNode的形式多个node之间形成一个单链表，这些node的共同特点是其在hash\_table中的整数id都是同一个值，然后在基于链表逐个node去比较node中的key\_值和hashcode是否一样，一样则说明查找到了对应的数值，如果找不到说明是一个新的值，则基于输入的key和value新建一个node并插入到链表头中（因为hashtable中存储的是表头的地址指针）。HashMap通过数组和单链表的形式，获取到id之后只要最多遍历一遍链表就可以查找到对应的value，如果没有hash冲突，算法复杂度则为O(1)，如果有则算法复杂度O(n)。另外当元素过少可以用单链表形式表示，但是元素过多的话则需要用红黑树来表示存储形式。
 
 %% section for cmake
 \section{cmake}
