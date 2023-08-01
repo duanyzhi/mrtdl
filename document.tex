@@ -419,7 +419,23 @@ $U$是正交矩阵，$\Sigma$是奇异值组成的对角矩阵。
 
 %\setcounter{chapter}{0}
 \chapter{第五章\ 算法}
-
+\section{拓扑排序}
+对一个有向无环图，可以通过拓扑排序获取图上每个节点的执行顺序。假设对一个节点定义如下:
+\begin{lstlisting}
+struct Node {
+ public:
+  Node(std::string name) : name_(name) {}
+  void add(Node* node) {
+	++(node->in_degree);
+	next_nodes.emplace_back(node);
+  }
+  int in_degree = 0;
+  std::vector<Node*> next_nodes;
+	
+  std::string name_;
+};
+\end{lstlisting}
+节点包含一下信息: 入度(in\_degree)表示当前节点的输入节点个数。next\_nodes表示当前节点的所有输出节点。拓扑排序的思想为：当一个节点的入度是0的时候则可以执行当前节点（将节点放入queue中），同时可以从图上删除当前节点，并且将节点的所有next\_nodes的入度都减去1。同样的方法遍历完所有的节点即可得到一个可执行队列。
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
 
@@ -656,6 +672,21 @@ void fun();
 \section{std}
 \subsection{std::vector}
 \subsection{std::forward}
+\begin{lstlisting}
+template<class _Ty>
+_NODISCARD constexpr _Ty&& forward(remove_reference_t<_Ty>& _Arg) noexcept
+{	// forward an lvalue as either an lvalue or an rvalue
+	return (static_cast<_Ty&&>(_Arg));
+}
+
+template<class _Ty>
+_NODISCARD constexpr _Ty&& forward(remove_reference_t<_Ty>&& _Arg) noexcept
+{	// forward an rvalue as an rvalue
+	static_assert(!is_lvalue_reference_v<_Ty>, "bad forward call");
+	return (static_cast<_Ty&&>(_Arg));
+}
+\end{lstlisting}
+
 \subsection{std::enable\_if}
 \subsection{std::find\_if}
 \subsection{std::map和std::unordered\_map}
