@@ -419,7 +419,8 @@ $U$是正交矩阵，$\Sigma$是奇异值组成的对角矩阵。
 
 %\setcounter{chapter}{0}
 \chapter{第五章\ 算法}
-\section{拓扑排序}
+\section{排序算法}
+\subsection{拓扑排序}
 对一个有向无环图，可以通过拓扑排序获取图上每个节点的执行顺序。假设对一个节点定义如下:
 \begin{lstlisting}
 struct Node {
@@ -436,6 +437,34 @@ struct Node {
 };
 \end{lstlisting}
 节点包含一下信息: 入度(in\_degree)表示当前节点的输入节点个数。next\_nodes表示当前节点的所有输出节点。拓扑排序的思想为：当一个节点的入度是0的时候则可以执行当前节点（将节点放入queue中），同时可以从图上删除当前节点，并且将节点的所有next\_nodes的入度都减去1。同样的方法遍历完所有的节点即可得到一个可执行队列。
+
+\subsection{快速排序}
+快速排序方法:
+先选一个基准数，然后从数组尾地址向前，如果值小于基准值，则将值移动到基准前面。同时从开始位置向后移动，如果值大于基准值，则将值移动到基准值后面。这样一次排序得到了基准值在数组中的位置，然后使用分治加上递归思想。分别对基准位置前面的数组和后面的数组再次进行排序。调用递归函数直到起始位置等于终止位置。
+\begin{lstlisting}
+void quick_sort(std::vector<int>& nums, int start, int end) {
+  if (end < start) return;
+	int base = nums[start];
+	int index = start;
+		
+	int i = start;
+	int j = end;
+	while (i < j) {
+		while (i < j && nums[j] >= base) {
+			j--;
+		}
+		nums[i] = nums[j];   // set nums[j] before base, set it to index i
+		while (i < j && nums[i] <= base) {
+			i++;
+		}
+		nums[j] = nums[i];  // set nums[i] after base, set it to index j
+		nums[i] = base;   // i == j, set nums[i] == base, set base in middle
+	}
+	quick_sort(nums, start, i - 1);
+	quick_sort(nums, i + 1, end);
+}
+\end{lstlisting}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
 
