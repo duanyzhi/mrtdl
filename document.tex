@@ -482,6 +482,10 @@ void quick_sort(std::vector<int>& nums, int start, int end) {
 汇编器: 将汇编程序生成可重定位的机器代码。\\
 链接器: 将多个编译文件链接在一起。\\
 \subsection{BandWidth}
+
+\subsection{内存}
+计算机中存储速度从快到慢依次是: 寄存器->缓存->主存->磁盘存储器。CPU和GPU的主存都采用的是DRAM（动态随机存取存储器）。
+
 \section{常用命令工具}
 \subsection{Windows}
 \subsection{Ubuntu}
@@ -502,7 +506,7 @@ virtualenv venv -p /usr/bin/python3.7
 \chapter{第七章\ c++}
 
 \section{基础概念}
-
+\subsection{const}
 \subsection{类型别名}
 类型别名(type alias)可以使用关键字typedef或者using，用来表示将某个类型重命名。
 \begin{lstlisting}
@@ -539,8 +543,21 @@ namespace {}
 
 \subsection{decltype}
 \subsection{extern}
+\subsection{volatile}
+volatile关键字表示修饰的对象可能会被改变，不需要编译器进行优化。比如:
+\begin{lstlisting}
+int value = 12581;
+
+while(value == 12581)
+{
+  // ...
+}
+\end{lstlisting}
+这种情况编译器会将其优化成while(true)的形式，但是实际上value可能会被其它编译器感知不到的地方所改变其值。这种情况就不希望编译器优化value。则可以通过添加volatile关键字来告诉编译器不要优化修饰的对象。
+
 \subsection{函数指针}
 \subsection{noexcept}
+函数
 \subsection{restrict}
 \subsection{value initialization}
 \subsection{预处理命令}
@@ -747,6 +764,20 @@ static int indexFor(int key, int max_size) {
 \section{cmake}
 \subsection{cmake demo}
 \section{设计模式}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+
+\fancyhead{}
+\fancyhead[CO,CE]{CUDA}
+
+%\setcounter{chapter}{0}
+\chapter{第八章\ CUDA}
+
+\section{基础概念}
+\subsection{Streaming Multiprocessor, SM}
+
+\section{keyword}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%  参考文献  %%
 \newpage
