@@ -419,6 +419,29 @@ $U$是正交矩阵，$\Sigma$是奇异值组成的对角矩阵。
 
 %\setcounter{chapter}{0}
 \chapter{第五章\ 算法}
+\section{复杂度计算}
+时间复杂度可表示为: $O(1), O(n), O(logn)$等，表示完成计算需要进行的次数。
+\begin{lstlisting}
+std::unordered_map<int, int> map;
+int value = map[0];   // O(1)，hashmap一次计算就可以得到结果
+
+for (int i = 0; i < n; ++i) {
+ // ... for loop n次循环复杂度为O(n)
+}
+
+// O(logn)
+std::vector<int> nums{1, 2, 3, 4, 5, 6, 7, 8};
+// 假设查找2
+// 第一次二分: 1, 2, 3, 4,长度: 8 * (1/2)  = 4
+// 第二次二分: 1, 2, 长度: 8 * (1/2) * (1/2) = 2
+// 第三次二分: 2, 长度： 8 * (1/2) * (1/2) * (1/2) = 1
+\end{lstlisting}
+$O(logn)$是比较不容易理解的，如代码一个数组使用二分法查找某一个数字，长度为8的数字需要进行三次二分才可以找到对应的值。那么假设有$n$个数字，需要经过$k$次二分可以找到值。则有:$n * (1/2)^k = 1$,即$k$次查找之后数组长度是1。log变化之后:
+\begin{equation}\label{log-algorithm-time}
+k = log_2(n)
+\end{equation}
+这称为对数时间，即为$O(logn)$.(这里统一记作logn而不用管log的底是多少，因为根据换底公式，不同的底数只是一个常系数的差别)。比如长度为8带入公式得到k是3，即最多进行三次运算就可以找到对应的值了。
+
 \section{排序算法}
 \subsection{拓扑排序}
 对一个有向无环图，可以通过拓扑排序获取图上每个节点的执行顺序。假设对一个节点定义如下:
@@ -465,6 +488,10 @@ void quick_sort(std::vector<int>& nums, int start, int end) {
 }
 \end{lstlisting}
 
+\section{Graph}
+\subsection{DFS and BFS}
+Depth First Search Algorithm(DFS)，深度优先搜索算法:从某一个节点开始，沿着一条搜索路径一直走到底，如果不满足条件然后从这条路尽头的节点回退到上一个节点，再从另一条路开始走到底。依次按照这种规律递归所有的节点。
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
 
@@ -507,6 +534,58 @@ virtualenv venv -p /usr/bin/python3.7
 
 \section{基础概念}
 \subsection{const}
+const用来修饰变量或者函数为不可变的，但在不同地方意思不同:
+\begin{lstlisting}
+int* const ptr = new int[4];  // 指针常量
+const int* ptr;  // 常量指针
+\end{lstlisting}
+指针常量: 指针指向的地址不能被改变，即指针对象不能被修改。但是指针指向的内容是可以修改的。并且可以cast成void*,注意这里cast之后指针地址还是没有被改变的，只是类型变成void*了。指针变量中const修饰的是变量值，即这个变量值不能被修改，但是前面的指针是可以被操作的。指针常量在定义时必须被初始化，所以一般在class中如果有指针常量则必须在构造的时候使用初始化列表来初始化指针常量:
+\begin{lstlisting}
+int* const ptr = new int[4];
+// valid:
+ptr[0] = 1;
+void* void_ptr = static_cast<void*>(ptr);
+
+// invalid
+int* new_data = new int[4];
+// ptr = new_data; // invalid to change the pointer， can not change variable ptr to new value.
+
+// in class
+class A {
+ public:
+  A(int* data) : data_(data) {}
+  //A() {
+  //  data_ = new int[1];  // invalid init in here
+  // }
+	
+ private:
+  int* const data_;  // must init in initialize list 
+};
+\end{lstlisting}
+常量指针: 返回的指针不能被修改，比如cast成void*等。并且指针指向的值也是不可以修改的。常量指针定义时可以不用初始化。但是同一个指针变量可以指向新的指针位置，因为常量指针修饰的时指针地址(int*)，即不允许对这个指针地址操作。但是指针变量(ptr)是可以被改变的。
+\begin{lstlisting}
+// valid
+const int* ptr;
+ptr = new int[4];
+ptr = new int[10];  // valid to change to pointr address for ptr;
+
+// invalid
+// ptr[0] = 1;  // invalid
+// void* void_ptr = static_cast<void*>(ptr);  // invalid to cast it
+\end{lstlisting}
+
+\subsection{字符}
+c++中单引号表示字符，双引号表示字符串。
+
+\begin{lstlisting}
+std::string a = "a";
+char b = 'b';
+// if ('a' == a) // invalid, for a is tring, but 'a' is const char
+std::cout << typeid(a).name() << " " << typeid(b).name() << " " << typeid(a[0]).name() << "\n";
+// output is: OKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE c c
+// first a is string type, b and a[0] is c(char).
+\end{lstlisting}
+	
 \subsection{类型别名}
 类型别名(type alias)可以使用关键字typedef或者using，用来表示将某个类型重命名。
 \begin{lstlisting}
