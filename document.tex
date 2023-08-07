@@ -423,18 +423,18 @@ $U$是正交矩阵，$\Sigma$是奇异值组成的对角矩阵。
 时间复杂度可表示为: $O(1), O(n), O(logn)$等，表示完成计算需要进行的次数。
 \begin{lstlisting}
 std::unordered_map<int, int> map;
-int value = map[0];   // O(1)，hashmap一次计算就可以得到结果
+int value = map[0];   // O(1)-> hash map get outputs only once
 
 for (int i = 0; i < n; ++i) {
- // ... for loop n次循环复杂度为O(n)
+ // ... for loop n -> O(n)
 }
 
 // O(logn)
 std::vector<int> nums{1, 2, 3, 4, 5, 6, 7, 8};
-// 假设查找2
-// 第一次二分: 1, 2, 3, 4,长度: 8 * (1/2)  = 4
-// 第二次二分: 1, 2, 长度: 8 * (1/2) * (1/2) = 2
-// 第三次二分: 2, 长度： 8 * (1/2) * (1/2) * (1/2) = 1
+// if search for 2
+// first dichotomy: 1, 2, 3, 4, size = 8 * (1/2)  = 4
+// second dichotomy: 1, 2, siz = 8 * (1/2) * (1/2) = 2
+// third dichotomy: 2,  size = 8 * (1/2) * (1/2) * (1/2) = 1
 \end{lstlisting}
 $O(logn)$是比较不容易理解的，如代码一个数组使用二分法查找某一个数字，长度为8的数字需要进行三次二分才可以找到对应的值。那么假设有$n$个数字，需要经过$k$次二分可以找到值。则有:$n * (1/2)^k = 1$,即$k$次查找之后数组长度是1。log变化之后:
 \begin{equation}\label{log-algorithm-time}
@@ -536,19 +536,19 @@ virtualenv venv -p /usr/bin/python3.7
 \subsection{const}
 const用来修饰变量或者函数为不可变的，但在不同地方意思不同:
 \begin{lstlisting}
-int* const ptr = new int[4];  // 指针常量
-const int* ptr;  // 常量指针
+int* const ptr = new int[4];  //  pointer const
+const int* ptr;  //  const pointer
 \end{lstlisting}
 指针常量: 指针指向的地址不能被改变，即指针对象不能被修改。但是指针指向的内容是可以修改的。并且可以cast成void*,注意这里cast之后指针地址还是没有被改变的，只是类型变成void*了。指针变量中const修饰的是变量值，即这个变量值不能被修改，但是前面的指针是可以被操作的。指针常量在定义时必须被初始化，所以一般在class中如果有指针常量则必须在构造的时候使用初始化列表来初始化指针常量:
-\begin{lstlisting}
+\begin{lstlisting}[language=C++]
 int* const ptr = new int[4];
 // valid:
 ptr[0] = 1;
 void* void_ptr = static_cast<void*>(ptr);
 
 // invalid
-int* new_data = new int[4];
-// ptr = new_data; // invalid to change the pointer， can not change variable ptr to new value.
+int* new_data = new int[4]; // invalid if set new data to ptr, ptr = new_data;
+
 
 // in class
 class A {
@@ -796,14 +796,25 @@ void fun();
 %% section for std
 \section{std}
 \subsection{std::vector}
-\subsection{std::forward}
+\subsection{std::forward and std::move}
+\textbf{std::forward}\newline
+当输入是一个lvalue时, 匹配到如下模板。remove\_reference\_t会删除所有的reference，则输入相当于是\_Ty\&\ \_Arg。然后经过Reference collapsing(引用折叠)\_Ty\&\&\ \&\_Arg之后返回还是一个lvalue形式。
 \begin{lstlisting}
 template<class _Ty>
 _NODISCARD constexpr _Ty&& forward(remove_reference_t<_Ty>& _Arg) noexcept
 {	// forward an lvalue as either an lvalue or an rvalue
 	return (static_cast<_Ty&&>(_Arg));
 }
-
+\end{lstlisting}
+Reference collapsing规则是偶数引用可删除:\newline
+\begin{itemize}
+\item[$\bullet$] T\&\&\ \&\& → T\&\&
+\item[$\bullet$] T\&\ \&\& → T\&
+\item[$\bullet$] T\&\ \& → T\&
+\item[$\bullet$] T\&\&\ \& → T\&
+\end{itemize}
+当输入是一个右值时，
+\begin{lstlisting}
 template<class _Ty>
 _NODISCARD constexpr _Ty&& forward(remove_reference_t<_Ty>&& _Arg) noexcept
 {	// forward an rvalue as an rvalue
