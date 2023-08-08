@@ -490,7 +490,70 @@ void quick_sort(std::vector<int>& nums, int start, int end) {
 
 \section{Graph}
 \subsection{DFS and BFS}
-Depth First Search Algorithm(DFS)，深度优先搜索算法:从某一个节点开始，沿着一条搜索路径一直走到底，如果不满足条件然后从这条路尽头的节点回退到上一个节点，再从另一条路开始走到底。依次按照这种规律递归所有的节点。
+Depth First Search Algorithm(DFS)，深度优先搜索算法:从某一个节点开始，沿着一条搜索路径一直走到底，如果不满足条件然后从这条路尽头的节点回退到上一个节点，再从另一条路开始走到底。依次按照这种规律递归所有的节点。Breadth-First Search (BFS) 广度优先搜索，从根节点开始，分别搜索左右节点，左右节点不满足条件在分别搜索左节点的子节点和右节点的子节点，依次遍历所有节点。对输入节点:
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{images/num2tree.jpg}
+	\caption{node-tree}
+	\label{node-tree-dfs-bfs}
+\end{figure}
+dfs和bfs算法如下:
+\begin{lstlisting}
+#include <iostream>
+#include <vector>
+#include <queue>
+
+struct TreeNode {
+	int val;
+	TreeNode *left;
+	TreeNode *right;
+	TreeNode() : val(0), left(nullptr), right(nullptr) {}
+	TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+	TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
+};
+
+void dfs(TreeNode* root) {
+	if(nullptr == root) return;
+	dfs(root->left);
+	std::cout << root->val << " -> ";
+	dfs(root->right);
+}
+
+void bfs(TreeNode* root) {
+	if (root == NULL)
+	return;
+	std::queue<TreeNode*> q;
+	q.push(root);
+	while (!q.empty()) {
+		TreeNode* node = q.front();
+		std::cout << node->val << " -> ";
+		q.pop();
+		
+		if (nullptr != node->left) q.push(node->left);
+		if (nullptr != node->right) q.push(node->right);
+	}
+}
+
+
+int print(TreeNode* root) {
+	dfs(root);
+	std::cout << "\n";
+	
+	bfs(root);
+	std::cout << "\n";
+}
+
+int main() {
+	TreeNode n0(0);
+	TreeNode n1(1);
+	TreeNode n5(5);
+	TreeNode n9(9, &n5, &n1);
+	TreeNode n4(4, &n9, &n0);
+	int sum = print(&n4);
+}
+\end{lstlisting}
+dfs输出节点: $5 \rightarrow 9 \rightarrow 1 \rightarrow 4 \rightarrow 0$\newline
+bfs输出节点: $4 \rightarrow 9 \rightarrow 0 \rightarrow 5 \rightarrow 1$\newline
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
@@ -501,6 +564,21 @@ Depth First Search Algorithm(DFS)，深度优先搜索算法:从某一个节点�
 %\setcounter{chapter}{0}
 \chapter{第六章\ 计算机基础}
 \section{基础概念}
+\subsection{计算机体系结构}
+查看系统版本:
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{images/cpu_architecture.png}
+	\caption{计算机Architecture}
+	\label{cpu-architecture}
+\end{figure}
+参数解析:\newline
+\begin{itemize}
+\item[$\bullet$] Architecture: x86\_64表示是64位系统，x86\_32表示32位系统。
+\item[$\bullet$] CPU op-mode: 表示Linux在运行什么系统的版本,64位系统支持32以及64位的系统程序。
+\item[$\bullet$] CPU: 一共有多少个CPU
+\end{itemize}
+
 \subsection{程序编译原理}
 程序编译步骤包括:
  \begin{center} 源文件 $\rightarrow$ 预处理器 $\rightarrow$ 编译器 $\rightarrow$ 连接器 $\rightarrow$ 目标机器代码 \end{center}
@@ -796,6 +874,45 @@ void fun();
 %% section for std
 \section{std}
 \subsection{std::vector}
+\begin{lstlisting}
+std::vector<int> nums1{};
+std::vector<int> nums2{0, 1, 2, 3};
+std::vector<int> nums3{0, 1, 2, 3, 4, 5};
+
+size_t nums1_size = sizeof(nums1);   // 24
+size_t nums2_size = sizeof(nums2);   // 24
+size_t nums3_size = sizeof(nums3);   // 24
+\end{lstlisting}
+这里对std::vector求sizeof大小都是24个字节，这个大小不是vector存储的内容的大小，二是vector这个结构体存储的大小，24字节分别存储了三个指针: begin of vector, end if vector and end of reserved memory for vector。在64位系统上用8字节大小存储指针，比如:
+\begin{lstlisting}
+sizeof(int*) == sizeof(float*) == 8;
+\end{lstlisting}
+所以vector大小就是3*8=24字节。std::vector多了一个指向预分配内存的指针，如下:
+\begin{lstlisting}
+std::vector<int> nums;
+nums.reserve(10);
+nums[0] = 0;
+std::cout << nums.size() << " " << nums.capacity() << "\n";   // 0, 10
+nums.emplace_back(1);
+std::cout << nums.size() << " " << nums.capacity() << "\n";   // 1, 10
+nums.reserve(20);
+std::cout << nums.size() << " " << nums.capacity() << "\n";   // 1, 20
+
+int* data = nums.data();  // vector to data pointer
+\end{lstlisting}
+reserve会预分配给vector一个内存空间，会影响vector的capacity(最大可容纳元素的个数)，但是不会影响size, 只有push\_back, emplace\_back会影响size大小。所以除了存储首地址和尾地址之外还需要一个指向其最大capacity处的地址指针。比如上面的nums，vector.begin()指向下标为0的元素，vector.end()是vector.begin() + vector.size(),指向末尾元素+1的位置，这里就是指向下标为1的元素(只有一个元素)。而剩下nums其实还有19个存放元素的内存大小。所以如果没有使用reserve预先分配内存，则vector每次push\_back元素的时候都会改变vector的申请内存的大小，会重复的释放和重新申请内存导致效率降低。如果reserve了一个size，但是实际使用的时候push的个数大于预先分配的尺寸，则vector会重新分配一个2倍reserve大小的内存大小。
+\begin{lstlisting}
+std::vector<int> nums;
+nums.reserve(10);
+nums.emplace_back(1);
+std::cout << nums.size() << " " << nums.capacity() << "\n";   // 1, 10
+for (int i = 0; i < 15; ++i) {
+  nums.emplace_back(i);
+}
+std::cout << nums.size() << " " << nums.capacity() << "\n";   // 16, 20
+\end{lstlisting}
+如上,vector的capacity在push个数大于10个之后capacity的值从10变成了20。
+
 \subsection{std::forward and std::move}
 \textbf{std::forward}\newline
 当输入是一个lvalue时, 匹配到如下模板。remove\_reference\_t会删除所有的reference，则输入相当于是\_Ty\&\ \_Arg。然后经过Reference collapsing(引用折叠)\_Ty\&\&\ \&\_Arg之后返回还是一个lvalue形式。
@@ -849,6 +966,34 @@ static int indexFor(int key, int max_size) {
 }
 \end{lstlisting}
 这里如果key是一个int值，max\_size表示hash\_table的长度size\_,则通过求余数将一个很大的整形数或者hash值转换成到0到size\_之间的一个整数id。然后用id来从hash\_table中索引具体的节点HashNode。HashNode主要包含三个成员变量，key是hashcode值，表示当前node节点的唯一id值。value表示存储的整数数据结构体，next指针指向下一个HashNode节点。如果hash值映射的id都是唯一的，那么hash\_table的value就是每一个node节点的地址指针。但是这里就会出现可能会出现多个不同的hash值映射成了一个索引id（hash冲突）,因为没有办法将size\_设置的很大来容纳所有的hash值，所以如果对于同一个id, 通过next指针指向下一个HashNode的形式多个node之间形成一个单链表，这些node的共同特点是其在hash\_table中的整数id都是同一个值，然后在基于链表逐个node去比较node中的key\_值和hashcode是否一样，一样则说明查找到了对应的数值，如果找不到说明是一个新的值，则基于输入的key和value新建一个node并插入到链表头中（因为hashtable中存储的是表头的地址指针）。HashMap通过数组和单链表的形式，获取到id之后只要最多遍历一遍链表就可以查找到对应的value，如果没有hash冲突，算法复杂度则为O(1)，如果有则算法复杂度O(n)。另外当元素过少可以用单链表形式表示，但是元素过多的话则需要用红黑树来表示存储形式。
+
+\subsection{std::queue and std::stack}
+queue(队列)原则是元素先进先出，stack(栈)元素是后进先出。queue.pop()移除的是第一个进queue的元素，stack.pop()移除的是最后一个进stack的元素。
+\begin{lstlisting}
+std::queue<int> queue;
+queue.push(0);
+queue.push(1);
+int first = queue.front();  // 0
+queue.pop();  // remove first element
+
+std::stack<int> stack;
+stack.push(0);
+stack.push(1);
+int top = stack.top();   // 1
+stack.pop();  // remove the top element
+\end{lstlisting}
+
+\subsection{std::sort}
+std::sort可实现迭代排序功能，默认升序排序，也可以传入lambda函数来指定排序规则。sort会直接改变输入的迭代器里的值。当传入一个lambda排序函数时，lambda的两个输入表示比较迭代项的值，比如begin()指向的值。lambda必须返回一个bool值表示比较条件，如下a[1] < b[1]表示按照vector第2个元素升序排序，如果a的第二个值小a排在前面。
+\begin{lstlisting}
+#include <algorithm>  // std::sort
+
+std::vector<int> vec1{2, 1, 3};
+std::vector<std::vector<int>> vec2{{2, 1}, {1, 3}, {3, 0}};
+std::sort(vec1.begin(), vec1.end());   // vec1: {1, 2, 3}
+std::sort(vec2.begin(), vec2.end());   // vec2: {{1, 3}, {2, 1}, {3, 0}}, sort for first element
+std::sort(vec2.begin(), vec2.end(), [&](std::vector<int>& a, std::vector<int>& b) { return a[1] < b[1]; });  // {{3, 0}, {2, 1}, {1, 3}}
+\end{lstlisting}
 
 %% section for cmake
 \section{cmake}
