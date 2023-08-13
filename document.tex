@@ -839,6 +839,39 @@ struct data_factory {
 
 \subsection{virtual}
 \subsection{虚函数表}
+\subsection{虚析构函数}
+虚析构函数是为了解决基类的指针指向派生类对象，并用基类的指针删除派生类对象。如果基类析构函数不是virtual的，则无法通过基类指针删除派生类对象。
+\begin{lstlisting}
+class Base {
+	public:
+	Base() { std::cout << "construct base class.\n"; };
+	virtual ~Base() { std::cout << "destroy base class\n"; }
+};
+class Derived : public Base {
+	public:
+	Derived() { std::cout << "construct derived class.\n"; }
+	~Derived() { std::cout << "destroy derived class\n"; }
+};
+
+int main() {
+	Base* method = new Derived();
+	delete method;
+	return 0;
+}
+// output:
+// construct base class.
+// construct derived class.
+// destroy derived class
+// destroy base class
+
+// if Base destroy is not virtual, output is:
+// construct base class.
+// construct derived class.
+// destroy base class
+\end{lstlisting}
+可以看出构造是先构造基类在构造派生类，析构是先析构派生类在析构基类。但是如果将基类析构函数设置为不是虚函数, 则派生类析构函数不会被调用，即派生类不会进行析构，从而导致内存泄露等问题。
+
+
 \section{模板}
 template代码的位置不能在.cpp/.cc之中,Templated code implementation should never be in a .cpp file: your compiler has to see them at the same time as it sees the code that calls them.一般都是放在.h文件中. 如果希望放在.cpp文件中要对class进行 explicit instantiation,对类模板A在.cpp最后加上:template class A;来实现显示生成object. 不能在class中特化模板；模板的定义一般是放在.h中,但是对该模板的特化定义要放在.cpp函数中.否则会有重定义的问题。模板只是代码的简化和宏展开一个效果，编译器会对每个类型都增加一个实现。不要在template中对某个特殊类型进行不同逻辑的处理，如果需要这样请特化。
 
@@ -871,6 +904,10 @@ void fun();
 
 \subsection{可变参数模板}
 \subsection{Traits}
+
+%% section for 
+\section{多线程并发}
+
 %% section for std
 \section{std}
 \subsection{std::vector}
@@ -1008,11 +1045,93 @@ std::sort(vec2.begin(), vec2.end(), [&](std::vector<int>& a, std::vector<int>& b
 
 %\setcounter{chapter}{0}
 \chapter{第八章\ CUDA}
-
 \section{基础概念}
-\subsection{Streaming Multiprocessor, SM}
+\subsection{Hello Add}
+cuda编程的思想是并行多线程同时在cuda核上运行，一个cuda的加法demo如下:
+\begin{lstlisting}
+// cuda_add.cu
+#include <cuda_runtime.h>
+
+__global__ void cuda_add(float* A, float* B, float* C)
+{
+  int block_idx = blockIdx.x;
+  int thread_idx = threadIdx.x;
+  int blockdim = blockDim.x;
+  int idx = block_idx * blockdim + thread_idx;
+  C[idx] = A[idx] + B[idx];
+}
+
+int main()
+{
+  #define BLOCK_SIZE 64
+  
+  int N = 1000;
+  size_t nBytes = N * sizeof(float);
+
+  float *h_A, *h_B, *h_C;
+  h_A = (float*)malloc(nBytes);
+  h_B = (float*)malloc(nBytes);
+  h_C = (float*)malloc(nBytes);
+  // ...
+  
+  float *d_A, *d_B, *d_C;
+  cudaMalloc((float**)&d_A, nBytes);
+  cudaMalloc((float**)&d_B, nBytes);
+  cudaMalloc((float**)&d_C, nBytes);
+  
+  cudaMemcpy(d_A, h_A, nBytes, cudaMemcpyHostToDevice);
+  cudaMemcpy(d_B, h_B, nBytes, cudaMemcpyHostToDevice);
+  
+  cudaSetDevice(0);
+  dim3 dimBlock(BLOCK_SIZE);
+  dim3 dimGrid((N + BLOCK_SIZE - 1)/ BLOCK_SIZE);
+  cuda_add<<<dimGrid, dimBlock>>>(d_A, d_B, d_C);
+  cudaDeviceSynchronize();  // wait gpu compute end
+  cudaMemcpy(h_C, d_C, nBytes, cudaMemcpyDeviceToHost);
+
+  free(h_A);
+  free(h_B);
+  free(h_C);
+
+  cudaFree(d_A);
+  cudaFree(d_B);
+  cudaFree(d_C);
+}
+// compiler:
+// nvcc cuda_add.cu -o cuda_add
+\end{lstlisting}
+一个cuda核用\_\_global\_\_关键字来定义，cuda\_add执行通过$<<<...>>>$操作符来定义，dimGrid和dimBlock定义了具体的线程数配置。一组的线程组成了cuda block, cuda block组成了cuda grid。一个二位cuda grid可视化:
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.9\textwidth]{images/cuda_grid_block.png}
+	\caption{cuda-grid}
+	\label{cuda-grid}
+\end{figure}
+如cuda\_add中定义BLOCK\_SIZE表示一个cuda block的大小是多少。在定义dimGrid和dimBlock的时候其实都是dim3是3个维度的，即dimx, dimy, dimz。当不指定其他两个维度，大小默认是1。所以$ dimBlock(BLOCK\_SIZE);$相当于$dimBlock(BLOCK\_SIZE, 1, 1);$,即blockDim.x = BLOCK\_SIZE, blockDim.y == blockDim.z == 1。同理dimGrid为:
+\begin{equation}\label{compute-dim-grid}
+dimGrid = (N + BLOCK_SIZE - 1) / BLOCK_SIZE;
+\end{equation}
+这种就发可以保证dimGrid * dimBlock可以将所有的输入数据N都包含在内，比如N是1000, dimBlock是64,则dimGrid是16。这里只考虑x一个维度，即使用16个cuda block(gridDim.x = 16), 每个cuda block的大小是64(blockDim.x = 64)。所以一共有1024个线程在同时计算，每个线程的索引可以通过:
+\begin{equation}\label{compute-cuda-thread-idx}
+int\ idx = blockIdx.x * blockDim.x + threadIdx.x;
+\end{equation}
+其中blockIdx.x,blockDim.x,threadIdx.x都是cuda函数内置的一些变量，表示当前线程核函数的信息: blockIdx.x表示当前线程属于哪一个block，范围在0到gridDim.x-1之间。blockDim.x：一个常数通过表示x维度一个block包含了多少个线程。threadIdx.x: 当前block内这个cuda kernel的线程索引是多少，范围属于0到blockDim.x-1。然后这里每个线程进行两个数的相加操作。那么cuda kernel和设备对应关系是什么呢？如下图对于GPU设备是由很多个Multithreaded Streaming Multiprocessors (SMs)组成的，图中一个绿色格表示一个core core,多个cuda core组成了一个SM。这里一个SM包含32个cuda core，一个GPU设备含有8个SMs。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.9\textwidth]{images/GPU-Architecture.png}
+	\caption{GPU-Architecture}
+	\label{GPU-Architecture}
+\end{figure}
+一个SM的结构如下,cuda core (也称为Stream Processors (SP))最基本的计算单元，一个core core具有浮点计算单元和整形计算单元。当一个cuda kernel被执行时，会根据线程数目将cuda grid分配到不同的SM上去执行，但是对于一个cuda block来说只能在一个SM上执行。一个SM的CUDA core会分成几个warp（线程束），即CUDA core在SM中分组，一个warp中的线程必然在同一个block中，由于warp的大小一般为32，所以block所含的thread的大小一般要设置为32的倍数。一个cuda core可以运行16个线程，两个cuda core就可以组成一个线程束。
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.9\textwidth]{images/cuda-one-sm.png}
+	\caption{SM}
+	\label{SM}
+\end{figure}
 
 \section{keyword}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%  参考文献  %%
 \newpage
