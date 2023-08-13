@@ -410,6 +410,12 @@ $U$是正交矩阵，$\Sigma$是奇异值组成的对角矩阵。
 \section{分类模型}
 \section{检测模型}
 \section{分割模型}
+\section{量化}
+假设将float区间$x_{float}^{min}\sim x_{float}^{max}$,量化表示区间为:$x_{quantized}^{min}\sim x_{quantized}^{max}$,则量化公式为:
+\[scale = \frac{x_{float}^{max} - x_{float}^{min}}{x_{quantized}^{max} - x_{quantized}^{min}}\]
+\[position = x_{quantized}^{max} - \frac{x_{float}^{max}}{scale}\]
+\[x_{quantized} = \frac{x_{float}}{scale} + position\]
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
