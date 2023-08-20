@@ -571,6 +571,14 @@ bfs输出节点: $4 \rightarrow 9 \rightarrow 0 \rightarrow 5 \rightarrow 1$\new
 \chapter{第六章\ 计算机基础}
 \section{基础概念}
 \subsection{计算机体系结构}
+中央处理器（CPU，Central Processing Unit）是一块超大规模的集成电路,结构如下:
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{images/Cpu_diagram.png}
+	\caption{CPU}
+	\label{cpu}
+\end{figure}
+
 查看系统版本:
 \begin{figure}[H]
 	\centering
@@ -592,7 +600,9 @@ bfs输出节点: $4 \rightarrow 9 \rightarrow 0 \rightarrow 5 \rightarrow 1$\new
 编译器: 完成预处理后文件到汇编语言的转换。（编译器包括语法分析、代码生成等步骤）\\
 汇编器: 将汇编程序生成可重定位的机器代码。\\
 链接器: 将多个编译文件链接在一起。\\
-\subsection{BandWidth}
+\subsection{bandwidth and throughput}
+带宽(bandwidth)是数据传输的最大速率;
+吞吐量指单位时间内运算/传输的数据量
 
 \subsection{内存}
 计算机中存储速度从快到慢依次是: 寄存器->缓存->主存->磁盘存储器。CPU和GPU的主存都采用的是DRAM（动态随机存取存储器）。
@@ -702,8 +712,8 @@ Dec  Char                           Dec  Char     Dec  Char     Dec  Char
 25  EM  (end of medium)             57  9         89  Y        121  y
 26  SUB (substitute)                58  :         90  Z        122  z
 27  ESC (escape)                    59  ;         91  [        123  {
-	28  FS  (file separator)            60  <         92  \        124  |
-	29  GS  (group separator)           61  =         93  ]        125  }
+28  FS  (file separator)            60  <         92  \        124  |
+29  GS  (group separator)           61  =         93  ]        125  }
 30  RS  (record separator)          62  >         94  ^        126  ~
 31  US  (unit separator)            63  ?         95  _        127  DEL
 \end{lstlisting}
@@ -773,7 +783,7 @@ while(value == 12581)
 \section{内存管理}
 \subsection{基本内存概念}
 计算机以bit序列来存储数据，每个bit(比特)表示非0即1。大多数计算机以2的整数次幂个bit作为块来处理内存，可寻址的最小内存块称为"字节"(byte),一个字节含有8bit的内存大小，计算机中将内存中每个字节和一个数字(称为地址，address)进行关联。
-1 byte = 8 bit, 1 K = 1024 byte, 1 M = 1024 K, 1 G = 1024 M, 1 KB = 1000 byte。c++中所有的数据类型都是以字节为基础单位的，常用数据类型字节大小: bool(1字节), char(1字节), int(4字节), double(8字节)。
+1 byte = 8 bit, 1 K = 1024 byte, 1 M = 1024 K, 1 G = 1024 M, 1 KB = 1000 byte。c++中所有的数据类型都是以字节为基础单位的，常用数据类型字节大小: bool(1字节), char(1字节), int(4字节), float(4字节), double(8字节), int8\_t(signed char): 8bit,1字节，范围-128至127, int16\_t(short, 16bit, 2字节)。
 \subsection{const}
 \subsection{heap}
 \subsection{stack}
@@ -1181,7 +1191,8 @@ int\ idx = blockIdx.x * blockDim.x + threadIdx.x;
 \end{figure}
 
 \section{keyword}
-
+\subsection{\_\_syncthreads}
+\_\_syncthreads()用于线程间通信，保证block内所有线程都运行到调用\_\_syncthreads()的地方，然后在继续往下执行。
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%  参考文献  %%
 \newpage
