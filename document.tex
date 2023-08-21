@@ -574,9 +574,9 @@ bfs输出节点: $4 \rightarrow 9 \rightarrow 0 \rightarrow 5 \rightarrow 1$\new
 中央处理器（CPU，Central Processing Unit）是一块超大规模的集成电路,结构如下:
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.7\textwidth]{images/Cpu_diagram.png}
-	\caption{CPU}
-	\label{cpu}
+	\includegraphics[width=0.7\textwidth]{images/cpu_architecture.png}
+	\caption{Cpu-diagram}
+	\label{Cpu-diagram}
 \end{figure}
 
 查看系统版本:
@@ -780,13 +780,82 @@ while(value == 12581)
 \subsection{预处理命令}
 \#pragma
 
+\subsection{操作符}
+$\land$ \newline
+c++中，$\land$ 表示异或(XOR)操作，运算的规则是相同为0，不同为1。
+\begin{lstlisting}
+1 ^ 1 = 0;  1 ^ 0 = 1; 0 ^ 0 = 0; 1 ^ 2 = 3;
+\end{lstlisting}
+
+\% \newline
+\%表示两个数的余数值, /表示两个数相除的整数部分。比如11除3整除部分是3余数是2。
+\begin{lstlisting}
+11 % 3 = 2;
+11 / 3 = 3;
+\end{lstlisting}
+
+\subsection{类型转换}
+\textbf{reinterpret\_cast} \newline
+reinterpret\_cast只能执行指针到指针的转换和引用到引用的转换(加上指针到整型和整型到指针的转换)。使用reinterpret\_cast是一种比较危险的转换方式，比如转换两个指针，reinterpret\_cast会根据指针类型强制转换指针指向值的bit位含义，但是却不改变指针本身，并且在编译期不会做类型检查也不会报错。所以reinterpret\_cast一般只用于普通指针转成void*或者将void*转成指针原本表示的数据类型。
+\begin{lstlisting}
+int num = 48;
+int* int_ptr = &num;
+char* str_ptr = reinterpret_cast<char*>(int_ptr);
+
+std::cout << int_ptr << " " << static_cast<void*>(str_ptr) << "\n";
+// 0x7ffff93397a4 0x7ffff93397a4
+
+std::cout << *int_ptr << " " << *str_ptr << "\n";
+// 48 0
+
+float* float_ptr = reinterpret_cast<float*>(int_ptr);
+std::cout << float_ptr << " " << *float_ptr << "\n";
+// 0x7ffff93397a4 6.72623e-44
+
+// next is invalid, compiler error for cast is not ptr or reference
+double b = reinterpret_cast<double>(num);  
+\end{lstlisting}
+从测例可以看出，使用reinterpret\_cast对指针转换后指针地址是都没有改变的，但是指针指向的值确完全不一样，当是int*时，指针指向的时int类型，表示数字是48,当转换成char*时指针指向的时char类型，编译器解析的时候按照char类型来存储读取对应的值,48则对应了char里面的'0'。当转成float*的时候，这就是一种不安全的类型转换，因为int和float本身的字节存储大小完全不一样，导致转换后指针指向的值读取出来是一个异常值，而不是float的48。所以一般的指针类型转换应该用static\_cast可以在编译期间就进行类型检查报错。使用reinterpret\_cast的话要很明确要转换的类型是否是合理的，否则在运行期可能会导致未知的问题。\newline
+reinterpret\_cast的使用之一是可以辅助生成指针的hash值:
+\begin{lstlisting}
+unsigned long hashcode( void *p ) {
+  unsigned long val = reinterpret_cast<unsigned long>( p );
+  return ( unsigned long )( val ^ (val >> 16));
+}
+int num = 48;
+int* int_ptr = &num;
+unsigned long hash = hashcode(static_cast<void*>(int_ptr));
+std::cout << "hashcode for pointer " << int_ptr << " is " << hash << "\n";
+// hashcode for pointer 0x7ffd076e4674 is 140726626369818
+\end{lstlisting}
+这里reinterpret\_cast作用就是无论对输入是什么类型的指针统一将其转换成unsigned long的形式，变成一个强转换来将指针转成int类型。
+
+\textbf{static\_cast} \newline
+static\_cast是一种安全类型转换形式，并且会在编译时自动检查转换类型是否合法。不安全的转换包括不同指针类型的转换，比如int*到float*，static\_cast一般适用于原类型指针可以适用于目标类型指针（比如有继承关系的类指针等），但是int*和float*完全没有关系所以无法转换。
+\begin{lstlisting}
+// valid
+int a = 1;
+float b = static_cast<float>(a);
+
+// invalid
+static_cast<float*>(&a);  // invalid cast int* to float*
+\end{lstlisting}
+
 \section{内存管理}
 \subsection{基本内存概念}
 计算机以bit序列来存储数据，每个bit(比特)表示非0即1。大多数计算机以2的整数次幂个bit作为块来处理内存，可寻址的最小内存块称为"字节"(byte),一个字节含有8bit的内存大小，计算机中将内存中每个字节和一个数字(称为地址，address)进行关联。
-1 byte = 8 bit, 1 K = 1024 byte, 1 M = 1024 K, 1 G = 1024 M, 1 KB = 1000 byte。c++中所有的数据类型都是以字节为基础单位的，常用数据类型字节大小: bool(1字节), char(1字节), int(4字节), float(4字节), double(8字节), int8\_t(signed char): 8bit,1字节，范围-128至127, int16\_t(short, 16bit, 2字节)。
+1 byte = 8 bit, 1 K = 1024 byte, 1 M = 1024 K, 1 G = 1024 M, 1 KB = 1000 byte。c++中所有的数据类型都是以字节为基础单位的，常用数据类型字节大小: bool(1字节), char(1字节), int(4字节), float(4字节), double(8字节), int8\_t(signed char): 8bit,1字节，范围-128至127, int16\_t(short, 16bit, 2字节)。\newline
+
+cpu内存分布为:
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.5\textwidth]{images/memory_layout.png}
+\caption{memory-layout}
+\label{memory-layout}
+\end{figure}
+
 \subsection{const}
-\subsection{heap}
-\subsection{stack}
+\subsection{stack and heap}
 \subsection{Free Store}
 \subsection{Global/Static}
 
@@ -1095,6 +1164,7 @@ std::sort(vec2.begin(), vec2.end(), [&](std::vector<int>& a, std::vector<int>& b
 %% section for cmake
 \section{cmake}
 \subsection{cmake demo}
+\section{gcc}
 \section{设计模式}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
