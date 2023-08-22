@@ -668,6 +668,18 @@ ptr = new int[10];  // valid to change to pointr address for ptr;
 // void* void_ptr = static_cast<void*>(ptr);  // invalid to cast it
 \end{lstlisting}
 
+const修饰函数,在函数声明后用关键字const表示的"const function",常量函数内只能对成员变量进行读操作，不能修改成员变量，如果修改了则会出现编译期报警。但是如果是函数内的零时变量是可以修改的。const修饰类A时表示类的方法都是不可修改的，所以调用aa的时候只能调用其常量成员函数，不允许调用其非const成员函数add，在const对象上调用了一个非const成员函数，这是不允许的，因为非const成员函数没有承诺不修改对象，所以编译器会做一个安全的假设，add()可能会试图修改对象,但是aa又是const的不能被修改所以此时编译器会编译报错。
+\begin{lstlisting}
+class A {
+ void log() const;  // const function
+ void add();
+};
+
+const A aa;
+aa.log();
+aa.add();  // invalid
+\end{lstlisting}
+
 \subsection{字符}
 c++中单引号表示字符，双引号表示字符串。
 
