@@ -416,6 +416,61 @@ $U$是正交矩阵，$\Sigma$是奇异值组成的对角矩阵。
 \[position = x_{quantized}^{max} - \frac{x_{float}^{max}}{scale}\]
 \[x_{quantized} = \frac{x_{float}}{scale} + position\]
 
+\section{PyTorch}
+pytorch有两种图模式，torch.jit.trace(静态图)和torch.jit.script(动态图)。trace图和script图的最大区别是在控制流(if,for,while)的处理上,当控制流的循环次数和输入有关系时，即图时可变的动态图，这样只能使用script方法来生产pytorch的计算图，而trace只能处理简单的循环次数固定的控制流情况。
+\begin{lstlisting}[language=Python, breaklines=true]
+	import torch
+	import torch.nn as nn
+	
+	class TModel(nn.Module):
+	  def __init__(self) -> None:
+        super(TModel, self).__init__()
+	
+	def forward(self, x):
+	  if x.sum() > 0:
+	    x += 1
+	return x
+	
+	x = torch.randn(1, 3, 5, 5)
+	
+	model = TModel()
+	y = model(x)
+	
+	trace_model = torch.jit.trace(model, x, check_trace=False)
+	script_model = torch.jit.script(model)
+	
+	method_graph, params = torch._C._jit_pass_lower_graph(trace_model.forward.graph, trace_model._c)
+	print(method_graph)
+	
+	script_graph, script_params = torch._C._jit_pass_lower_graph(script_model.forward.graph, script_model._c)
+	print(script_graph)
+
+"""
+torch.jit.trace
+graph(%x : Float(1, 3, 5, 5, strides=[75, 25, 5, 1], requires_grad=0, device=cpu)):
+%2 : Long(requires_grad=0, device=cpu) = prim::Constant[value={1}]() # test_scripy_and_trace.py:10:0
+%3 : int = prim::Constant[value=1]() # test_scripy_and_trace.py:10:0
+%4 : Float(1, 3, 5, 5, strides=[75, 25, 5, 1], requires_grad=0, device=cpu) = aten::add_(%x, %2, %3) # test_scripy_and_trace.py:10:0
+return (%4)
+
+torch.jit.script
+graph(%x.1 : Tensor):
+%2 : NoneType = prim::Constant()
+%3 : int = prim::Constant[value=0]() # test_scripy_and_trace.py:9:20
+%4 : int = prim::Constant[value=1]() # test_scripy_and_trace.py:10:14
+%5 : Tensor = aten::sum(%x.1, %2) # test_scripy_and_trace.py:9:10
+%6 : Tensor = aten::gt(%5, %3) # test_scripy_and_trace.py:9:10
+%7 : bool = aten::Bool(%6) # test_scripy_and_trace.py:9:10
+%x : Tensor = prim::If(%7) # test_scripy_and_trace.py:9:7
+   block0():
+     %x.7 : Tensor = aten::add_(%x.1, %4, %4) # test_scripy_and_trace.py:10:9
+      -> (%x.7)
+   block1():
+     -> (%x.1)
+  return (%x)
+"""
+\end{lstlisting}
+使用trace生产graph时必须指定输入，但是script则不需要。当存在输入影响控制流的情况时，trace会根据jit.trace时的输入的值固定控制流输出，这里直接输出都走了add + 1的操作（因为trace时的输入的sum值时大于0），重复用trace生成几次会发现生成的graph会不一样，当x = torch.randn(1, 3, 5, 5)的sum值小于0时，则不走add + 1的操作。所以这种形式不是希望的正常的导致graph的方式。而script则会将输入的信息传给控制流，从而生成一个正确的动态图。所以一般情况都是建议先使用torch.jit.script来生成graph。但是由于script对于很多op支持不如trace，所以大部分情况下会结合torch.jit.trace导出加上含有控制流部分的函数使用@torch.jit.script修饰的形式来导出pytorch的计算图。
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
@@ -588,10 +643,13 @@ bfs输出节点: $4 \rightarrow 9 \rightarrow 0 \rightarrow 5 \rightarrow 1$\new
 \end{figure}
 参数解析:\newline
 \begin{itemize}
-\item[$\bullet$] Architecture: x86\_64表示是64位系统，x86\_32表示32位系统。
+\item[$\bullet$] Architecture: x86\_64表示是64位系统，x86\_32表示32位系统。32和64指CPU的字长，字长是指 CPU 一次能够处理的数据的二进制位数。
 \item[$\bullet$] CPU op-mode: 表示Linux在运行什么系统的版本,64位系统支持32以及64位的系统程序。
 \item[$\bullet$] CPU: 一共有多少个CPU
 \end{itemize}
+
+\textbf{存储器}\newline
+存储器分为主存储器(mainmemory)和辅助存储器(auxiliarymemory),国内更习惯于分别称为内存(内存储器)和外存(外存储器)。内存用于存放要执行的程序和相应的数据,外存作为内存的后援设备,存放暂时不需要执行而将来要执行的程序和相应的数据。没有内存,程序就不能输入到计算机中,因而也就无法执行;没有外存,输入的程序及相应的数据及各种信息就不能长期保存(关机后内存中的数据会丢失),下次用到该程序还得重新输入。计算机中常见的内存种类主要有随机存取存储器、只读存储器和高速缓存,但说到内存,更多的时候是指随机存取存储器(random acess memory, RAM)，随机存取指可以根据地址直接存取任一单元中的数据，可以分为随机存储器(SRAM)和动态随机存储器(DRAM),在通电情况下,SRAM 中存储的数据不会丢失,所以不需定时刷新,存取速度快。其不足是集成度较低、体积比较大、成本比较高,主要用于要求速度 快、但容量较小的高速缓存。DRAM 存储单元需要定时刷新,否则存储的数据就会丢失,存取速度比较慢,但集成度高、体积小、成本低,RAM 内存(内存条)主要选用DRAM。
 
 \subsection{程序编译原理}
 程序编译步骤包括:
@@ -1257,14 +1315,21 @@ dimGrid = (N + BLOCK_SIZE - 1) / BLOCK_SIZE;
 \begin{equation}\label{compute-cuda-thread-idx}
 int\ idx = blockIdx.x * blockDim.x + threadIdx.x;
 \end{equation}
-其中blockIdx.x,blockDim.x,threadIdx.x都是cuda函数内置的一些变量，表示当前线程核函数的信息: blockIdx.x表示当前线程属于哪一个block，范围在0到gridDim.x-1之间。blockDim.x：一个常数通过表示x维度一个block包含了多少个线程。threadIdx.x: 当前block内这个cuda kernel的线程索引是多少，范围属于0到blockDim.x-1。然后这里每个线程进行两个数的相加操作。那么cuda kernel和设备对应关系是什么呢？如下图对于GPU设备是由很多个Multithreaded Streaming Multiprocessors (SMs)组成的，图中一个绿色格表示一个core core,多个cuda core组成了一个SM。这里一个SM包含32个cuda core，一个GPU设备含有8个SMs。
+其中blockIdx.x,blockDim.x,threadIdx.x都是cuda函数内置的一些变量，表示当前线程核函数的信息: blockIdx.x表示当前线程属于哪一个block，范围在0到gridDim.x-1之间。blockDim.x：一个常数通过表示x维度一个block包含了多少个线程。threadIdx.x: 当前block内这个cuda kernel的线程索引是多少，范围属于0到blockDim.x-1。然后这里每个线程进行两个数的相加操作。那么cuda kernel和设备对应关系是什么呢？Figure A.2.5 shows a GPU with an array of
+112 streaming processor (SP) cores, organized as 14 multithreaded streaming
+multiprocessors (SM). Each SP core is highly multithreaded, managing 96
+concurrent threads and their state in hardware. The processors connect with
+four 64-bit-wide DRAM partitions via an interconnection network. Each SM
+has eight SP cores, two special function units (SFUs), instruction and constant
+caches, a multithreaded instruction unit, and a shared memory. 
+如下图显示的GPU构造，一个GPU含有112个streaming processor(SP)cores,一个SP也成为一个cuda core,是GPU最基本的计算单元, 多个sp组成了14个Multithreaded Streaming Multiprocessors(SMs), 每个SM有8个SP, 每一个SP core之间都时高并行运行的，有硬件决定这里可以同时运行96个线程。同时所有SM都和64比特的DRAM进行和cpu之间的数据传输。
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.9\textwidth]{images/GPU-Architecture.png}
-	\caption{GPU-Architecture}
+	\includegraphics[width=0.9\textwidth]{images/basic-gpu-architecture.png}
+	\caption{NVIDIA GeForce 8800 GPU-Architecture}
 	\label{GPU-Architecture}
 \end{figure}
-一个SM的结构如下,cuda core (也称为Stream Processors (SP))最基本的计算单元，一个core core具有浮点计算单元和整形计算单元。当一个cuda kernel被执行时，会根据线程数目将cuda grid分配到不同的SM上去执行，但是对于一个cuda block来说只能在一个SM上执行。一个SM的CUDA core会分成几个warp（线程束），即CUDA core在SM中分组，一个warp中的线程必然在同一个block中，由于warp的大小一般为32，所以block所含的thread的大小一般要设置为32的倍数。一个cuda core可以运行16个线程，两个cuda core就可以组成一个线程束。
+一个SM包含了多个cuda core(SP)、两个特殊函数单元(Special Function Units, SFUs)、指令和常量缓存区域(Instruction and Constant caches, I-Cache, C-Cache)、一个多线程指令单元(Multithreaded Instruction Unit, MT Issue)和一个共享内存(Shared Memory)。一个cuda core具有浮点计算单元和整形计算单元。当一个cuda kernel被执行时，会根据线程数目将cuda grid分配到不同的SM上去执行，但是对于一个cuda block来说只能在一个SM上执行。一个SM的CUDA core会分成几个warp（线程束），即CUDA core在SM中分组，一个warp中的线程必然在同一个block中，由于warp的大小一般为32，所以block所含的thread的大小一般要设置为32的倍数。一个cuda core可以运行16个线程，两个cuda core就可以组成一个线程束。
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.9\textwidth]{images/cuda-one-sm.png}
