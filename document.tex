@@ -653,11 +653,53 @@ bfs输出节点: $4 \rightarrow 9 \rightarrow 0 \rightarrow 5 \rightarrow 1$\new
 
 \subsection{程序编译原理}
 程序编译步骤包括:
- \begin{center} 源文件 $\rightarrow$ 预处理器 $\rightarrow$ 编译器 $\rightarrow$ 连接器 $\rightarrow$ 目标机器代码 \end{center}
-预处理器: 完成将多个源文件汇聚在一起的任务，主要包括将头文件代码copy到源文件中，将对应的宏进去扩展开。\\
-编译器: 完成预处理后文件到汇编语言的转换。（编译器包括语法分析、代码生成等步骤）\\
-汇编器: 将汇编程序生成可重定位的机器代码。\\
-链接器: 将多个编译文件链接在一起。\\
+ \begin{center} 源文件 $\rightarrow$ 预处理器 $\rightarrow$ 编译器 $\rightarrow$ 汇编器 $\rightarrow$ 连接器 $\rightarrow$ 目标机器代码 \end{center}
+以一下main.cpp文件为例:
+\begin{lstlisting}
+// main.cpp
+#include <iostream>
+
+int main() {
+	std::cout << "Hello C++\n";
+}
+\end{lstlisting}
+\textbf{源文件}: 原始c++文件 *.c, *.cc, *.cpp, *.h。\\
+\textbf{预处理器(Preprocessing)}: 完成将多个源文件汇聚在一起的任务，主要包括将头文件代码拷贝到源文件中，将对应的宏进行扩展开过程，预处理之后生成的文件后缀时.i(C)或者.ii(C++)。预处理器一般是使用GNUC Preprocessor(cpp)工具来完成的。生成预处理后的临时文件方式有三种方式:
+\begin{lstlisting}
+g++ main.cpp -E -o main.ii  // -E for generate preprocess file
+cpp main.cpp -o main.ii
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -save-temps")  // add in CmakeLists.txt
+\end{lstlisting}
+可通过g++的-E指令或者直接使用cpp工具生成，使用cmake的话加入-save-temps参数。\\
+\textbf{编译器(Compilation)}: 完成预处理后文件(*.ii)到汇编语言的转换,汇编器的输出时汇编代码(*.s), 编译器一般通过gcc编译器完成代码的语法分析、代码生成等步骤转成汇编代码。汇编文件的生成可使用-S指令:
+\begin{lstlisting}
+g++ main.cpp -S
+g++ -S main.ii
+\end{lstlisting}
+-S会生成一个main.s的汇编程序。\\
+\textbf{汇编器(Assemble)}: 将汇编程序(*.s)生成可重定位的机器代码或者目标代码，输出文件是*.o, *.obj格式。汇编器通过汇编工具(as.exe)来生成机器代码:
+\begin{lstlisting}
+as main.s -o main.o
+g++ main.cc -o main.o
+\end{lstlisting}
+main.o文件已经是一个可以直接在系统上直接运行的程序了，如果没有其他依赖的话可直接运行:./main.o也会输出结果。\\
+\textbf{链接器(Linking)}: 将多个编译文件链接在一起，包括多个目标代码(*.o)的链接，静态库的链接等。链接输出结果一般是可执行程序。链接过程可通过链接器工具(ld.exe)完成:
+\begin{lstlisting}
+ld -o main main.o
+g++ -o main main.o -lstdc++
+g++ main.cpp -o main
+\end{lstlisting}
+这里会生成一个main的可执行程序。注意由于使用了std标准库所以在链接的时候加上了-lstdc++，否则会链接失败找不到std定义。如果直接直接从cpp文件生成可执行文件则不需要，gcc内部做了这个链接过程。这里使用ld的话会链接失败还要加上std链接文件。查看main链接的所有库:
+\begin{lstlisting}
+root@docker-desktop:/workspace/build# ldd -r main
+linux-vdso.so.1 (0x00007fff1db79000)
+libstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6 (0x00007fbb2dd4d000)
+libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007fbb2db5b000)
+libm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007fbb2da0c000)
+/lib64/ld-linux-x86-64.so.2 (0x00007fbb2df4a000)
+libgcc_s.so.1 => /lib/x86_64-linux-gnu/libgcc_s.so.1 (0x00007fbb2d9f1000)
+\end{lstlisting}
+
 \subsection{bandwidth and throughput}
 带宽(bandwidth)是数据传输的最大速率;
 吞吐量指单位时间内运算/传输的数据量
@@ -841,6 +883,8 @@ while(value == 12581)
 }
 \end{lstlisting}
 这种情况编译器会将其优化成while(true)的形式，但是实际上value可能会被其它编译器感知不到的地方所改变其值。这种情况就不希望编译器优化value。则可以通过添加volatile关键字来告诉编译器不要优化修饰的对象。
+
+\subsection{volatile}
 
 \subsection{函数指针}
 \subsection{noexcept}
@@ -1233,7 +1277,118 @@ std::sort(vec2.begin(), vec2.end(), [&](std::vector<int>& a, std::vector<int>& b
 
 %% section for cmake
 \section{cmake}
-\subsection{cmake demo}
+\subsection{Hello Cmake}
+一个最简单的CmakeLists.txt文件:
+\begin{lstlisting}
+// CMakeLists.txt
+cmake_minimum_required(VERSION 3.1)
+project(hello)
+add_executable(main main.cc print.h print.cc)
+\end{lstlisting}
+\begin{lstlisting}
+// main.cc
+#include "print.h"
+
+int main() {
+	print();
+}
+
+// print.h
+#ifndef PRINT_
+#define PRINT_
+
+void print();
+
+#endif  // PRINT_
+
+// print.cc
+#include "print.h"
+#include <iostream>
+
+void print() {
+	std::cout << "test\n";
+}
+\end{lstlisting}
+编译及运行方式:
+\begin{lstlisting}[language=bash]
+mkdir build  # build compiler generate folder
+cd build
+cmake ..   # find CmakeLists.txt and do preprocess
+make       # compiler
+
+root@docker-desktop:/workspace/build# cmake ..
+-- The C compiler identification is GNU 9.4.0
+-- The CXX compiler identification is GNU 9.4.0
+-- Check for working C compiler: /bin/cc
+-- Check for working C compiler: /bin/cc -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Check for working CXX compiler: /bin/c++
+-- Check for working CXX compiler: /bin/c++ -- works
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /workspace/build
+root@docker-desktop:/workspace/build# make
+Scanning dependencies of target main
+[ 33%] Building CXX object CMakeFiles/main.dir/main.cc.o
+[ 66%] Building CXX object CMakeFiles/main.dir/print.cc.o
+[100%] Linking CXX executable main
+[100%] Built target main
+\end{lstlisting}
+从编译输出可以看出cmake ..的时候进行了一些默认配置的检查，比如编译器找到了GNU，检测编译的ABI版本信息等。编译时会很多目标文件object file(**.o)，根据编译原理过程目标文件主要是将对应的.cc,.cpp文件中的一些头文件信息等和.cc原文件一起编译生成这个中间状态的.o文件，然后在后面生成可执行程序的时候会把所有的.o文件链接在一起(通过-o指令),可以查看生成的CMakeFiles/main.dir/link.txt文件:
+\begin{lstlisting}
+/bin/c++    -rdynamic CMakeFiles/main.dir/main.cc.o CMakeFiles/main.dir/print.cc.o  -o main
+\end{lstlisting}
+所以cmake在编译的时候其实是只需要源文件的，不需要将.h头文件写到CmakeLists.txt里，比如如果CmakeLists.txt写为:
+\begin{lstlisting}
+cmake_minimum_required(VERSION 3.1)
+project(hello)
+add_executable(main main.cc print.cc)
+\end{lstlisting}
+这样去掉print.h一样可以编译通过并且正常运行，之所以一般写头文件是为了IDE调试找到头文件位置。
+
+生成编译库,编译库有两种形式，静态库(static lib)和动态库(shared lib),如果使用静态库则编译器将静态库中使用的代码复制到可执行文件见中并且在运行时不需要在依赖对应的静态lib库文件，如果使用动态库则不会源码依赖文件，且在运行时需要依赖对应的动态库。这里print在cmake里称为一个target，target可以是一些lib信息，也可以是INTERFACE library接口库等。
+\begin{lstlisting}
+add_library(print STATIC print.cpp print.h)  // generate libprint.a
+add_library(print SHARED print.cpp print.h)  // generate libprint.so
+\end{lstlisting}
+如果需要main函数依赖生成的lib库则需要加上一句target\_link\_libraries, 修改cmake文件:
+\begin{lstlisting}
+cmake_minimum_required(VERSION 3.1)
+project(hello)
+add_library(print SHARED print.h print.cc)
+# add_library(print STATIC print.cpp print.h)
+
+add_executable(main main.cc)
+target_link_libraries(main print)  // main exe link to target print lib
+\end{lstlisting}
+查看main的依赖库形式:
+\begin{lstlisting}
+// deps shared libprint.so, ldd -r main
+linux-vdso.so.1 (0x00007fff75ba2000)
+libprint.so => /workspace/cpp_tutorial/build/libprint.so (0x00007f7a80020000)
+libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f7a7fe1a000)
+libstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6 (0x00007f7a7fc38000)
+/lib64/ld-linux-x86-64.so.2 (0x00007f7a8002c000)
+libm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007f7a7fae9000)
+libgcc_s.so.1 => /lib/x86_64-linux-gnu/libgcc_s.so.1 (0x00007f7a7face000)
+
+// deps static libprint.a, ldd -r main
+linux-vdso.so.1 (0x00007ffc83ee4000)
+libstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6 (0x00007ffbefb87000)
+libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007ffbef995000)
+libm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007ffbef846000)
+/lib64/ld-linux-x86-64.so.2 (0x00007ffbefd84000)
+libgcc_s.so.1 => /lib/x86_64-linux-gnu/libgcc_s.so.1 (0x00007ffbef82b000)
+\end{lstlisting}
+可以看出动态库在运行时main必须要找到对应的libprint.so文件，以静态库形式依赖时则不需要libprint.a文件。
+
 \section{gcc}
 \section{设计模式}
 
