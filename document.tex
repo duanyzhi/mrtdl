@@ -700,9 +700,10 @@ libm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007fbb2da0c000)
 libgcc_s.so.1 => /lib/x86_64-linux-gnu/libgcc_s.so.1 (0x00007fbb2d9f1000)
 \end{lstlisting}
 
-\subsection{bandwidth and throughput}
+\subsection{bandwidth、throughput and latency}
 带宽(bandwidth)是数据传输的最大速率;
-吞吐量指单位时间内运算/传输的数据量
+延迟(latency)是执行某些操作或产生某些结果所需的时间。延迟是用时间单位来衡量的。
+吞吐量(throughput)指单位时间内运算/传输的数据量
 
 \subsection{内存}
 计算机中存储速度从快到慢依次是: 寄存器->缓存->主存->磁盘存储器。CPU和GPU的主存都采用的是DRAM（动态随机存取存储器）。
@@ -1492,9 +1493,30 @@ caches, a multithreaded instruction unit, and a shared memory.
 	\label{SM}
 \end{figure}
 
-\section{keyword}
-\subsection{\_\_syncthreads}
-\_\_syncthreads()用于线程间通信，保证block内所有线程都运行到调用\_\_syncthreads()的地方，然后在继续往下执行。
+\section{GPU Memory}
+GPU的内存分为global memory、texture memory、constant memory、shared memory、registers、L1/L2/L3 cache和local memory。GPU内存的访问速度从快到慢依次为：Registers、Caches、Shared Memory、Gloabl Memory（Local Memory）。其中Local、Global、Contant、Texture都是片外内存,shared memroy和register是片上内存。
+\subsection{Global Memory}
+全局内存(Global Memory)是独立于GPU核心的硬件，全局内存是无缓存且读写较慢的，所有线程都可访问到全局内存。
+
+\subsection{Registers}
+寄存器(Registers)是访问速度最快的内存空间，当我们在核函数中不加修饰的声明一个变量，那该变量就是寄存器变量，寄存器的生命周期是和对应的线程一起的。寄存器是比较稀缺的，当寄存器不足时会申请local memory来进行存储。
+
+\subsection{shared memory}
+共享内存(shared memory)通过关键字\_\_shared\_\_在核函数中定义，使用如下:
+\begin{lstlisting}
+__shared__ float data[100];
+\end{lstlisting}
+每个SM中都有一块shared memory区域，共享内存在核函数中声明，生命周期和线程块一致。一个线程块内的所有线程可以访问同一个shared memory。数据的共享肯定会导致线程间的竞争，可以通过同步语句来避免内存竞争，同步语句为：
+\begin{lstlisting}
+__syncthreads();
+\end{lstlisting}
+\_\_syncthreads()用于线程间通信，保证block内所有线程都运行到调用\_\_syncthreads()的地方，然后在继续往下执行。所以使用了过多的shared memory和\_\_syncthreads()则可能会导致线程阻塞等待。
+
+\subsection{Constant memory}
+常量内存是只读的，所有的线程都可访问,位于SM的常量内存空间内。常量内存存在于核函数之外，在kernel函数外声明，即常量内存存在于内存中，并不在片上，常量内容的访问速度也是很快的，这是因为每个SM都有专用的常量内存缓存，会把片外的常量读取到缓存中；对所有的核函数都可见，在Host端进行初始化后，核函数不能再修改。使用关键字\_\_const\_\_来定义:
+\begin{lstlisting}
+__const__ float data[100];
+\end{lstlisting}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%  参考文献  %%
 \newpage
