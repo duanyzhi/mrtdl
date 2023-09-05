@@ -960,19 +960,45 @@ static_cast<float*>(&a);  // invalid cast int* to float*
 \subsection{基本内存概念}
 计算机以bit序列来存储数据，每个bit(比特)表示非0即1。大多数计算机以2的整数次幂个bit作为块来处理内存，可寻址的最小内存块称为"字节"(byte),一个字节含有8bit的内存大小，计算机中将内存中每个字节和一个数字(称为地址，address)进行关联。
 1 byte = 8 bit, 1 K = 1024 byte, 1 M = 1024 K, 1 G = 1024 M, 1 KB = 1000 byte。c++中所有的数据类型都是以字节为基础单位的，常用数据类型字节大小: bool(1字节), char(1字节), int(4字节), float(4字节), double(8字节), int8\_t(signed char): 8bit,1字节，范围-128至127, int16\_t(short, 16bit, 2字节)。\newline
-
 cpu内存分布为:
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.5\textwidth]{images/memory_layout.png}
+\includegraphics[width=0.3\textwidth]{images/memory.png}
 \caption{memory-layout}
 \label{memory-layout}
 \end{figure}
+从高位地址到低位地址分别是系统内核、stack、自由存储区、heap、全局静态数据(未初始化静态数据和初始化静态数据)、text(代码字段)。
+\subsection{stack}
+栈区(stack)是由编译器自动分配和释放的内存空间，申请的地址位从高地址位向低地址为扩展（向下增长）。常见的分配在stack上的地址包括:
+\begin{lstlisting}
+int a = 0;          // a in stack
+int *p = &a;        // p in stack
+std::vector<int> b{0, 1};  // b in stack
+std::cout << "a: " << &a << "\nb:" << &b << "\n";
+// a: 0x7fffc3b77d84
+// b: 0x7fffc3b77d90
+\end{lstlisting}
+这里可以看出内存基本都是高地址位，但是奇怪的是b的地址并没有比a的地址低，这是因为编译器在申请内存的时候并不是按照代码写的顺序来申请的内存的，而是对同一个局部区域(block)的变量申请一段内存空间，在按照不同编译器的申请方式逐个分配内存，只有是在不同的block之间才能看到stack地址的下降情况。在g++中同一个区域的stack地址高低位反而是和代码中申请的顺序相反的，比如这里b比a的地址要高。如果想看高stack从高到低的分配情况则将a和b放在两个block中：
+\begin{lstlisting}
+void print() {
+  int a2 = 1;
+  std::cout << "a2: " << &a2 << "\n";
+}
+int main() {
+int a1 = 1;
+std::cout << "a1: " << &a1 << "\n";
+// a1: 0x7fff848aa3c4
+// a2: 0x7fff848aa3a4
+\end{lstlisting}
+这里a1在一个block中，a2相当于在另一个block中。则可以看出由于a2在另一个block中，根据地址从高到底所以其地址位是低于a1的。所以stack的内存申请是按照block从高到底申请的，同一个block内地址高低和编译器有关系。
+\subsection{free store}
+自由存储区域是通过new/delete分配的动态存储空间。
 
-\subsection{const}
-\subsection{stack and heap}
-\subsection{Free Store}
-\subsection{Global/Static}
+\subsection{heap}
+堆区(heap)是由malloc/free控制申请和释放的一段动态内存空间。heap分配的地址是向上增长的，即从低地址位向高地址增长。
+
+\subsection{global static data}
+全局静态区域也称为常量存储区域，是有static分配的地址区域。
 
 \section{class}
 \begin{lstlisting}
